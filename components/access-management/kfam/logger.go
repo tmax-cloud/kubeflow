@@ -11,7 +11,8 @@
 package kfam
 
 import (
-	"log"
+//	"log"
+	"k8s.io/klog"
 	"net/http"
 	"time"
 )
@@ -22,7 +23,7 @@ func Logger(inner http.Handler, name string) http.Handler {
 
 		inner.ServeHTTP(w, r)
 
-		log.Printf(
+		klog.V(3).Infof(
 			"%s %s %s %s",
 			r.Method,
 			r.RequestURI,

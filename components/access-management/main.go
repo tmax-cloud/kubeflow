@@ -14,7 +14,8 @@ import (
 	"flag"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+//	log "github.com/sirupsen/logrus"
+	"k8s.io/klog"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/kubeflow/kubeflow/components/access-management/kfam"
@@ -34,25 +35,42 @@ const USERIDPREFIX = "userid-prefix"
 const CLUSTERADMIN = "cluster-admin"
 
 func main() {
-	log.Printf("Server started")
+	klog.V(3).Infof("Server started")
+	var LogLevel string
 	var userIdHeader string
 	var userIdPrefix string
 	var clusterAdmin string
+	flag.StringVar(&LogLevel, "log-level", "INFO", "Log Level; INFO, WARN, ERROR, FATAL")
 	flag.StringVar(&userIdHeader, USERIDHEADER, "x-goog-authenticated-user-email", "Key of request header containing user id")
 	flag.StringVar(&userIdPrefix, USERIDPREFIX, "accounts.google.com:", "Request header user id common prefix")
 	flag.StringVar(&clusterAdmin, CLUSTERADMIN, "", "cluster admin")
 	flag.Parse()
+
+	if LogLevel == "INFO" || LogLevel == "info" {
+        LogLevel = "3"
+    } else if LogLevel == "WARN" || LogLevel == "warn" {
+        LogLevel = "2"
+    } else if LogLevel == "ERROR" || LogLevel == "error" {
+        LogLevel = "1"
+    } else if LogLevel == "FATAL" || LogLevel == "fatal" {
+        LogLevel = "0"
+    } else {
+        klog.Infoln("Unknown log-level paramater. ")
+        LogLevel = "3"
+    }
+//    klog.InitFlags(nil)
+    flag.Set("v", LogLevel)
 
 	profile.AddToScheme(scheme.Scheme)
 	istioSecurityClient.AddToScheme(scheme.Scheme)
 
 	profileClient, err := kfam.NewKfamClient(userIdHeader, userIdPrefix, clusterAdmin)
 	if err != nil {
-		log.Print(err)
+		klog.V(1).Info(err)
 		panic(err)
 	}
 
 	router := kfam.NewRouter(profileClient)
 
-	log.Fatal(http.ListenAndServe(":8081", router))
+	klog.V(0).Info(http.ListenAndServe(":8081", router))
 }
